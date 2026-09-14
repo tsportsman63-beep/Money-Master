@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pay Stub Review</title>
+  <style>
+    :root {
+      --bg: #f5f7f8;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --accent: #556b2f;
+      --accent-dark: #3f5123;
+      --correct-bg: #e8f5e9;
+      --correct-border: #2e7d32;
+      --correct-text: #1b5e20;
+      --wrong-bg: #fdecec;
+      --wrong-border: #c62828;
+      --wrong-text: #8e1b1b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .wrap {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 28px 18px 40px;
+    }
+
+    .topbar {
+      margin-bottom: 14px;
+    }
+
+    .progress-text {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 10%;
+      background: var(--accent);
+      transition: width 0.2s ease;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 26px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    h1 {
+      font-size: 1.15rem;
+      color: var(--accent-dark);
+      margin: 0 0 8px;
+    }
+
+    .question {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin: 6px 0 22px;
+    }
+
+    .choices {
+      display: grid;
+      gap: 12px;
+    }
+
+    .choice {
+      width: 100%;
+      text-align: left;
+      background: #fff;
+      color: var(--text);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 1rem;
+      cursor: pointer;
+      min-height: 50px;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .choice:hover:not(:disabled) {
+      border-color: var(--accent);
+    }
+
+    .choice:focus-visible,
+    .continue:focus-visible {
+      outline: 3px solid #9fb36d;
+      outline-offset: 2px;
+    }
+
+    .choice:disabled {
+      cursor: default;
+      opacity: 1;
+    }
+
+    .choice.correct {
+      background: var(--correct-bg);
+      border-color: var(--correct-border);
+      color: var(--correct-text);
+      font-weight: 700;
+    }
+
+    .choice.wrong {
+      background: var(--wrong-bg);
+      border-color: var(--wrong-border);
+      color: var(--wrong-text);
+      font-weight: 700;
+    }
+
+    .feedback {
+      margin-top: 18px;
+      min-height: 28px;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .feedback.correct { color: var(--correct-text); }
+    .feedback.wrong { color: var(--wrong-text); }
+
+    .actions {
+      margin-top: 22px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .continue {
+      border: none;
+      border-radius: 9px;
+      background: var(--accent);
+      color: white;
+      font-size: 1rem;
+      font-weight: 700;
+      padding: 12px 22px;
+      cursor: pointer;
+      min-height: 46px;
+    }
+
+    .continue:hover:not(:disabled) {
+      background: var(--accent-dark);
+    }
+
+    .continue:disabled {
+      background: #b8c0ad;
+      cursor: not-allowed;
+    }
+
+    .finish {
+      text-align: center;
+      padding: 12px 0;
+    }
+
+    .finish h2 {
+      margin-top: 0;
+      color: var(--accent-dark);
+      font-size: 1.6rem;
+    }
+
+    .score {
+      font-size: 1.2rem;
+      margin: 14px 0 22px;
+    }
+
+    .restart {
+      display: inline-block;
+    }
+
+    @media (max-width: 520px) {
+      .wrap { padding: 18px 12px 28px; }
+      .card { padding: 20px 16px; }
+      .question { font-size: 1.15rem; }
+      .choice { font-size: 0.98rem; }
+      .actions { justify-content: stretch; }
+      .continue { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="topbar" id="topbar">
+      <div class="progress-text" id="progressText">Question 1 of 10</div>
+      <div class="progress-track" aria-hidden="true">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <section class="card" id="quizCard" aria-live="polite">
+      <h1>Pay Stub Review</h1>
+      <div class="question" id="questionText"></div>
+      <div class="choices" id="choices"></div>
+      <div class="feedback" id="feedback" aria-live="assertive"></div>
+      <div class="actions">
+        <button class="continue" id="continueBtn" type="button" disabled>Continue</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const questions = [
+      {
+        question: "Which of the following is a FALSE statement about your pay stub?",
+        choices: [
+          "It could cover two weeks, half a month, or even a month of work.",
+          "It helps you know when to expect your paycheck each month.",
+          "It defines your job responsibilities and tasks.",
+          "It details your gross pay, deductions and taxes withheld."
+        ],
+        answer: 2
+      },
+      {
+        question: "Which type of deductions from your employer would you NOT find on your paystub?",
+        choices: ["Taxes", "Insurance", "Retirement", "Charitable Giving"],
+        answer: 3
+      },
+      {
+        question: "What would your gross pay be if you worked 40 hours at $15 per hour?",
+        choices: ["$500", "$550", "$600", "$650"],
+        answer: 2
+      },
+      {
+        question: "True or False: If you sign up for an insurance plan through your employer, the premium will be deducted directly from your paycheck.",
+        choices: ["True", "False"],
+        answer: 0
+      },
+      {
+        question: "You've recently started a part-time job and received your first paystub. The details on the stub are as follows. Gross pay for the pay period: $600. Federal Tax withheld: $60. State Tax withheld: $30. Social Security withheld: $37.20. Medicare withheld: $8.70. Based on the provided paystub, how much will be your net pay for this pay period?",
+        choices: ["$464.10", "$500.00", "$537.80", "$472.10"],
+        answer: 0
+      },
+      {
+        question: "Select the term that matches the definition: The time period you are paid for.",
+        choices: ["Paystub", "Pay Period", "Gross Pay", "Net Pay", "Deductions"],
+        answer: 1
+      },
+      {
+        question: "Select the term that matches the definition: Money removed from earnings by an employer.",
+        choices: ["Paystub", "Pay Period", "Gross Pay", "Net Pay", "Deductions"],
+        answer: 4
+      },
+      {
+        question: "Select the term that matches the definition: The total amount of salary you’ve earned.",
+        choices: ["Paystub", "Pay Period", "Gross Pay", "Net Pay", "Deductions"],
+        answer: 2
+      },
+      {
+        question: "Select the term that matches the definition: Provided by an employer to break down earnings.",
+        choices: ["Paystub", "Pay Period", "Gross Pay", "Net Pay", "Deductions"],
+        answer: 0
+      },
+      {
+        question: "Select the term that matches the definition: Part of the salary you keep.",
+        choices: ["Paystub", "Pay Period", "Gross Pay", "Net Pay", "Deductions"],
+        answer: 3
+      }
+    ];
+
+    let current = 0;
+    let score = 0;
+    let answered = false;
+
+    const questionText = document.getElementById("questionText");
+    const choicesBox = document.getElementById("choices");
+    const feedback = document.getElementById("feedback");
+    const continueBtn = document.getElementById("continueBtn");
+    const progressText = document.getElementById("progressText");
+    const progressFill = document.getElementById("progressFill");
+    const quizCard = document.getElementById("quizCard");
+    const topbar = document.getElementById("topbar");
+
+    function renderQuestion() {
+      answered = false;
+      continueBtn.disabled = true;
+      feedback.textContent = "";
+      feedback.className = "feedback";
+
+      const q = questions[current];
+      questionText.textContent = q.question;
+      choicesBox.innerHTML = "";
+
+      progressText.textContent = `Question ${current + 1} of ${questions.length}`;
+      progressFill.style.width = `${((current + 1) / questions.length) * 100}%`;
+
+      q.choices.forEach((choiceText, index) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "choice";
+        btn.textContent = choiceText;
+        btn.addEventListener("click", () => checkAnswer(index, btn));
+        choicesBox.appendChild(btn);
+      });
+    }
+
+    function checkAnswer(index, selectedBtn) {
+      if (answered) return;
+      answered = true;
+
+      const q = questions[current];
+      const buttons = [...choicesBox.querySelectorAll(".choice")];
+      buttons.forEach(btn => btn.disabled = true);
+
+      if (index === q.answer) {
+        score++;
+        selectedBtn.classList.add("correct");
+        selectedBtn.textContent = "✓ " + selectedBtn.textContent;
+        feedback.textContent = "Correct!";
+        feedback.className = "feedback correct";
+      } else {
+        selectedBtn.classList.add("wrong");
+        selectedBtn.textContent = "✗ " + selectedBtn.textContent;
+
+        const correctBtn = buttons[q.answer];
+        correctBtn.classList.add("correct");
+        correctBtn.textContent = "✓ " + correctBtn.textContent;
+
+        feedback.textContent = "Not quite. The correct answer is shown in green.";
+        feedback.className = "feedback wrong";
+      }
+
+      continueBtn.disabled = false;
+      continueBtn.focus();
+    }
+
+    function showFinish() {
+      topbar.style.display = "none";
+      quizCard.innerHTML = `
+        <div class="finish">
+          <h2>Review Complete</h2>
+          <p>Nice work! You finished all 10 questions.</p>
+          <p class="score">You answered <strong>${score} out of ${questions.length}</strong> correctly.</p>
+          <button class="continue restart" id="restartBtn" type="button">Try Again</button>
+        </div>
+      `;
+      document.getElementById("restartBtn").addEventListener("click", () => location.reload());
+    }
+
+    continueBtn.addEventListener("click", () => {
+      if (!answered) return;
+      current++;
+      if (current < questions.length) {
+        renderQuestion();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        showFinish();
+      }
+    });
+
+    renderQuestion();
+  </script>
+</body>
+</html>
