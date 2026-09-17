@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Taxes Review</title>
+<style>
+:root{--bg:#f5f7f8;--card:#fff;--text:#1f2937;--muted:#6b7280;--border:#d1d5db;--accent:#556b2f;--accent-dark:#3f5123;--good-bg:#e8f5e9;--good:#2e7d32;--bad-bg:#fdecec;--bad:#c62828}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+.wrap{max-width:820px;margin:auto;padding:28px 18px 40px}
+.progress-text{font-size:.95rem;color:var(--muted);margin-bottom:8px}
+.track{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-bottom:14px}
+.fill{height:100%;background:var(--accent);width:10%;transition:width .2s ease}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:26px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+h1{font-size:1.15rem;color:var(--accent-dark);margin:0 0 8px}
+.question{font-size:1.35rem;font-weight:700;margin:6px 0 22px}
+.choices{display:grid;gap:12px}
+.choice{width:100%;text-align:left;background:#fff;color:var(--text);border:2px solid var(--border);border-radius:10px;padding:14px 16px;font-size:1rem;cursor:pointer;min-height:50px}
+.choice:hover:not(:disabled){border-color:var(--accent)}
+.choice:disabled{cursor:default;opacity:1}
+.choice.correct{background:var(--good-bg);border-color:var(--good);color:#1b5e20;font-weight:700}
+.choice.wrong{background:var(--bad-bg);border-color:var(--bad);color:#8e1b1b;font-weight:700}
+.feedback{margin-top:18px;min-height:28px;font-weight:700}
+.feedback.correct{color:#1b5e20} .feedback.wrong{color:#8e1b1b}
+.actions{margin-top:22px;display:flex;justify-content:flex-end}
+.continue{border:0;border-radius:9px;background:var(--accent);color:#fff;font-size:1rem;font-weight:700;padding:12px 22px;cursor:pointer;min-height:46px}
+.continue:disabled{background:#b8c0ad;cursor:not-allowed}
+.finish{text-align:center;padding:12px 0} .finish h2{color:var(--accent-dark)} .score{font-size:1.2rem;margin:14px 0 22px}
+@media(max-width:520px){.wrap{padding:18px 12px 28px}.card{padding:20px 16px}.question{font-size:1.15rem}.actions{justify-content:stretch}.continue{width:100%}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<div id="topbar">
+  <div class="progress-text" id="progressText">Question 1 of 10</div>
+  <div class="track"><div class="fill" id="progressFill"></div></div>
+</div>
+<section class="card" id="quizCard">
+  <h1>Taxes Review</h1>
+  <div class="question" id="questionText"></div>
+  <div class="choices" id="choices"></div>
+  <div class="feedback" id="feedback" aria-live="assertive"></div>
+  <div class="actions"><button class="continue" id="continueBtn" type="button" disabled>Continue</button></div>
+</section>
+</main>
+<script>
+const questions=[{"question": "Tax amounts are NOT based on which factor?", "choices": ["What a person earns", "What a person buys", "What a person reads", "What a person owns"], "answer": 2}, {"question": "Which of the following is a TRUE statement about a progressive tax?", "choices": ["It increases as your salary increases.", "It decreases as your salary increases.", "It increases as your salary decreases.", "It remains the same regardless of your salary."], "answer": 0}, {"question": "\"Tax Day,\" the annual deadline for filing taxes, is usually on which date?", "choices": ["March 15", "April 15", "May 15", "June 15"], "answer": 1}, {"question": "Why is it important to pay taxes on time?", "choices": ["To keep records of earned income", "To set a reasonable budget", "To make profits on investments", "To avoid paying additional fines"], "answer": 3}, {"question": "You've recently started a job and earn a gross income of $1000 per pay period. If your employer withholds payroll tax from your paycheck, how much will be deducted for this tax, considering both the employee's and employer's contributions?", "choices": ["$15.30", "$76.50", "$153.00", "$30.60"], "answer": 2}, {"question": "Select the term that matches the definition: Amount subtracted from taxes owed.", "choices": ["Federal income tax", "Payroll tax", "Sales tax", "Deductions", "Credits"], "answer": 4}, {"question": "Select the term that matches the definition: Paid on most goods and services.", "choices": ["Federal income tax", "Payroll tax", "Sales tax", "Deductions", "Credits"], "answer": 2}, {"question": "Select the term that matches the definition: Paid by an employee to the government.", "choices": ["Federal income tax", "Payroll tax", "Sales tax", "Deductions", "Credits"], "answer": 0}, {"question": "Select the term that matches the definition: Paid by employee and employer to the government.", "choices": ["Federal income tax", "Payroll tax", "Sales tax", "Deductions", "Credits"], "answer": 1}, {"question": "Select the term that matches the definition: Items that reduce taxable income.", "choices": ["Federal income tax", "Payroll tax", "Sales tax", "Deductions", "Credits"], "answer": 3}];
+let current=0,score=0,answered=false;
+const qt=document.getElementById("questionText"),cb=document.getElementById("choices"),fb=document.getElementById("feedback"),
+next=document.getElementById("continueBtn"),pt=document.getElementById("progressText"),pf=document.getElementById("progressFill"),
+card=document.getElementById("quizCard"),topbar=document.getElementById("topbar");
+
+function render(){
+  answered=false; next.disabled=true; fb.textContent=""; fb.className="feedback";
+  const q=questions[current]; qt.textContent=q.question; cb.innerHTML="";
+  pt.textContent=`Question ${current+1} of ${questions.length}`; pf.style.width=`${((current+1)/questions.length)*100}%`;
+  q.choices.forEach((text,i)=>{
+    const b=document.createElement("button"); b.type="button"; b.className="choice"; b.textContent=text;
+    b.addEventListener("click",()=>check(i,b)); cb.appendChild(b);
+  });
+}
+function check(i,selected){
+  if(answered)return; answered=true;
+  const q=questions[current], buttons=[...cb.querySelectorAll(".choice")]; buttons.forEach(b=>b.disabled=true);
+  if(i===q.answer){score++; selected.classList.add("correct"); selected.textContent="✓ "+selected.textContent; fb.textContent="Correct!"; fb.className="feedback correct";}
+  else{selected.classList.add("wrong"); selected.textContent="✗ "+selected.textContent; const right=buttons[q.answer]; right.classList.add("correct"); right.textContent="✓ "+right.textContent; fb.textContent="Not quite. The correct answer is shown in green."; fb.className="feedback wrong";}
+  next.disabled=false;
+}
+function finish(){
+  topbar.style.display="none";
+  card.innerHTML=`<div class="finish"><h2>Review Complete</h2><p>Nice work! You finished all 10 questions.</p><p class="score">You answered <strong>${score} out of ${questions.length}</strong> correctly.</p><button class="continue" id="restartBtn" type="button">Try Again</button></div>`;
+  document.getElementById("restartBtn").addEventListener("click",()=>location.reload());
+}
+next.addEventListener("click",()=>{if(!answered)return; current++; current<questions.length?render():finish();});
+render();
+</script>
+</body>
+</html>
